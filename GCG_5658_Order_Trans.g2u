@@ -1,0 +1,677 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Size(15765,13140)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form..Caption("Transfer Orders")
+Gui.Form.GsGcDisplay.Create(GsGridControl)
+Gui.Form.GsGcDisplay.Size(15420,11505)
+Gui.Form.GsGcDisplay.Position(45,585)
+Gui.Form.GsGcDisplay.Anchor(15)
+Gui.Form.GsGcDisplay.Event(RowCellClick,GsGcDisplay_RowCellClick)
+Gui.Form.cmdTransfer.Create(Button)
+Gui.Form.cmdTransfer.Size(855,375)
+Gui.Form.cmdTransfer.Position(14580,12165)
+Gui.Form.cmdTransfer.Caption("Transfer")
+Gui.Form.cmdTransfer.Event(Click,cmdTransfer_Click)
+Gui.Form.cmdTransfer.Anchor(10)
+Gui.Form.frame1.Create(Frame)
+Gui.Form.frame1.Size(1710,510)
+Gui.Form.frame1.Position(13740,30)
+Gui.Form.frame1.Anchor(9)
+Gui.Form.optView.Create(Option)
+Gui.Form.optView.Size(855,255)
+Gui.Form.optView.Position(45,165)
+Gui.Form.optView.Parent("frame1")
+Gui.Form.optView.Caption("View")
+Gui.Form.optView.Event(Click,setViewEdit)
+Gui.Form.optEdit.Create(Option)
+Gui.Form.optEdit.Size(660,255)
+Gui.Form.optEdit.Position(1005,165)
+Gui.Form.optEdit.Parent("frame1")
+Gui.Form.optEdit.Caption("Edit")
+Gui.Form.optEdit.Event(Click,setViewEdit)
+Gui.Form.cmdSelect.Create(Button)
+Gui.Form.cmdSelect.Size(1155,375)
+Gui.Form.cmdSelect.Position(12525,135)
+Gui.Form.cmdSelect.Caption("Select All")
+Gui.Form.cmdSelect.Anchor(9)
+Gui.Form.cmdSelect.Event(Click,cmdSelect_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+'Program.External.Include.Library("ORDUPL.lib")
+Program.External.Include.Library("GCG_5658_ORDUPL.lib")
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+v.Local.sReportID.Declare
+f.Intrinsic.Control.Try
+	v.Local.sReportID.Set(v.Passed.BIP_RptID.Trim)
+
+	f.Intrinsic.Control.If(V.Local.sReportID,=,"16090")
+
+		f.Intrinsic.Control.If(v.Passed.BIP_RptID.Trim, <>, "002820")
+			f.Intrinsic.Control.End
+		f.Intrinsic.Control.EndIf
+			
+		gui.Form.optView.Value(1)
+		f.Intrinsic.Control.CallSub(LoadIcon)
+		f.Intrinsic.Control.CallSub(checkCustomFolder)
+		f.Intrinsic.Control.CallSub(createDisplayDT)
+		f.Intrinsic.Control.CallSub(loadGridProperties)
+		
+		f.Intrinsic.Control.CallSub(getPartsfromBI)
+		gui.Form..Show		
+			
+			'Function.Intrinsic.Debug.Stop
+	f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.ErrorMsg.Start
+v.Local.sError.Declare
+
+'Closes ODBC connection, default to connection : "con"
+f.Intrinsic.Control.If(v.ODBC!con.State, =, 1)
+	f.ODBC.Connection!con.Close
+f.Intrinsic.Control.EndIf
+
+'Generic Error message.
+f.Intrinsic.String.Build("Project GCG_5658_Trans.g2u {0}{0}Subroutine: {1}{0}Error: {2} with Description: {3}", v.Ambient.NewLine, v.Args.CurrentSub, v.Ambient.ErrorNumber, v.Ambient.ErrorDescription, v.Local.sError)
+f.Intrinsic.UI.Msgbox(v.Local.sError)
+Program.Sub.ErrorMsg.End
+
+Program.Sub.checkCustomFolder.Start
+v.Local.sFolder.Declare
+v.Local.bExists.Declare
+v.Local.sText.Declare(String, "")
+
+f.Intrinsic.Control.Try
+	f.Intrinsic.String.Build("{0}\CUSTOM\GCG_5658\", v.Caller.GlobalDir, v.Local.sFolder)
+	f.Intrinsic.File.DirExists(v.Local.sFolder, v.Local.bExists)
+	f.Intrinsic.Control.If(v.Local.bExists.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sFolder)
+	f.Intrinsic.Control.EndIf
+	
+'	f.Intrinsic.String.Build("{0}\CUSTOM\GCG_5658\WEB_ORDER\", v.Caller.GlobalDir, v.Local.sFolder)
+'	f.Intrinsic.File.DirExists(v.Local.sFolder, v.Local.bExists)
+'	f.Intrinsic.Control.If(v.Local.bExists.Not)
+'		f.Intrinsic.File.CreateDir(v.Local.sFolder)
+'	f.Intrinsic.Control.EndIf	
+'	f.Intrinsic.String.Build("WEB ORDER DIRECTORY   = {0}", v.Local.sFolder, v.Local.sText)
+'	
+'	f.Intrinsic.String.Build("{0}\CUSTOM\GCG_5658\WEB_ERROR\", v.Caller.GlobalDir, v.Local.sFolder)
+'	f.Intrinsic.File.DirExists(v.Local.sFolder, v.Local.bExists)
+'	f.Intrinsic.Control.If(v.Local.bExists.Not)
+'		f.Intrinsic.File.CreateDir(v.Local.sFolder)
+'	f.Intrinsic.Control.EndIf	
+'	f.Intrinsic.String.Build("{0}{1}WEB ERROR DIRECTORY   = {2}", v.Local.sText, v.Ambient.NewLine, v.Local.sFolder, v.Local.sText)
+'	
+'	f.Intrinsic.String.Build("{0}\CUSTOM\GCG_5658\CONVERTED\", v.Caller.GlobalDir, v.Local.sFolder)
+'	f.Intrinsic.File.DirExists(v.Local.sFolder, v.Local.bExists)
+'	f.Intrinsic.Control.If(v.Local.bExists.Not)
+'		f.Intrinsic.File.CreateDir(v.Local.sFolder)
+'	f.Intrinsic.Control.EndIf
+'	f.Intrinsic.String.Build("{0}{1}WEB CONVERTED DIR     = {2}", v.Local.sText, v.Ambient.NewLine, v.Local.sFolder, v.Local.sText)
+'	
+'	f.Intrinsic.String.Build("{0}\CUSTOM\GCG_5658\UPLOADED\", v.Caller.GlobalDir, v.Local.sFolder)
+'	f.Intrinsic.File.DirExists(v.Local.sFolder, v.Local.bExists)
+'	f.Intrinsic.Control.If(v.Local.bExists.Not)
+'		f.Intrinsic.File.CreateDir(v.Local.sFolder)
+'	f.Intrinsic.Control.EndIf
+'	f.Intrinsic.String.Build("{0}{1}WEB UPLOADED DIRECTORY= {2}", v.Local.sText, v.Ambient.NewLine, v.Local.sFolder, v.Local.sText)
+'	
+'	f.Intrinsic.String.Build("{0}{1}EMAIL FROM ADDRESS    =", v.Local.sText, v.Ambient.NewLine, v.Local.sText)
+'	f.Intrinsic.String.Build("{0}{1}EMAIL TO ADDRESS      =", v.Local.sText, v.Ambient.NewLine, v.Local.sText)
+
+	
+	f.Intrinsic.String.Build("{0}\WEB_ORDERS", v.Caller.GlobalDir, v.Local.sFolder)
+	f.Intrinsic.File.DirExists(v.Local.sFolder, v.Local.bExists)
+	f.Intrinsic.Control.If(v.Local.bExists.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sFolder)
+	f.Intrinsic.Control.EndIf	
+	f.Intrinsic.String.Build("WEB ORDER DIRECTORY   = {0}", v.Local.sFolder, v.Local.sText)
+	
+	f.Intrinsic.String.Build("{0}\WEB_ORDERS\WEB_ERROR", v.Caller.GlobalDir, v.Local.sFolder)
+	f.Intrinsic.File.DirExists(v.Local.sFolder, v.Local.bExists)
+	f.Intrinsic.Control.If(v.Local.bExists.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sFolder)
+	f.Intrinsic.Control.EndIf	
+	f.Intrinsic.String.Build("{0}{1}WEB ERROR DIRECTORY   = {2}", v.Local.sText, v.Ambient.NewLine, v.Local.sFolder, v.Local.sText)
+	
+	f.Intrinsic.String.Build("{0}\WEB_ORDERS\CONVERTED", v.Caller.GlobalDir, v.Local.sFolder)
+	f.Intrinsic.File.DirExists(v.Local.sFolder, v.Local.bExists)
+	f.Intrinsic.Control.If(v.Local.bExists.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sFolder)
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.String.Build("{0}{1}WEB CONVERTED DIR     = {2}", v.Local.sText, v.Ambient.NewLine, v.Local.sFolder, v.Local.sText)
+	
+	f.Intrinsic.String.Build("{0}\WEB_ORDERS\UPLOADED", v.Caller.GlobalDir, v.Local.sFolder)
+	f.Intrinsic.File.DirExists(v.Local.sFolder, v.Local.bExists)
+	f.Intrinsic.Control.If(v.Local.bExists.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sFolder)
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.String.Build("{0}{1}WEB UPLOADED DIRECTORY= {2}", v.Local.sText, v.Ambient.NewLine, v.Local.sFolder, v.Local.sText)
+	
+	f.Intrinsic.String.Build("{0}{1}EMAIL FROM ADDRESS    = ", v.Local.sText, v.Ambient.NewLine, v.Local.sText)
+	f.Intrinsic.String.Build("{0}{1}EMAIL TO ADDRESS      = ", v.Local.sText, v.Ambient.NewLine, v.Local.sText)
+	
+	f.Intrinsic.String.Build("{0}\GSSPARAM{1}.txt", v.Caller.FilesDir, v.Caller.CompanyCode, v.Local.sFolder)
+	f.Intrinsic.File.String2File(v.Local.sFolder, v.Local.sText)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.checkCustomFolder.End
+
+Program.Sub.getPartsfromBI.Start
+'Search String
+v.Local.sSQL.Declare
+v.Local.sFilter.Declare
+v.Local.sTempQty.Declare
+v.Local.sSortValue.Declare
+
+'Header Variable
+v.Local.sCustomer.Declare
+v.Local.sShipVia.Declare
+v.Local.sFromLoc.Declare
+v.Local.sToLoc.Declare
+
+'Line Variable
+v.Local.sPartNumber.Declare
+v.Local.sRev.Declare
+v.Local.sDescription.Declare
+v.Local.sLocation.Declare
+v.Local.fQty.Declare
+
+'Counter
+v.Local.iCntHeader.Declare
+v.Local.iCntLines.Declare
+
+f.Intrinsic.Control.Try
+
+	f.Intrinsic.String.Build("Select Part, Locn, Descr, QTY, part+locn as Sort_Value from BI_AUTO_PRCH_WS where Part <> '' and Qty > 0 and TRMNL = '{0}' and RPTID = '002820'", v.Caller.Terminal, v.Local.sSQL)
+	
+	f.ODBC.Connection!con.OpenCompanyConnection
+	 	f.Data.DataTable.CreateFromSQL("biReportDT", "con", v.Local.sSQL, true)
+	 	f.Data.Dictionary.CreateFromSQL("codeSortDic", "con", "Select Part+Location as KeyValue, Rtrim(Name_Vendor) from Inventory_Mst2 where Name_Vendor <> ''")
+	 	f.Data.Dictionary.CreateFromSQL("vendorDic", "con", "Select RTRIM(BuyerCode) as BuyerCode, Customer from GCG_5658_BuyerCodes")
+'	 	f.Data.Dictionary.CreateFromSQL("toLocDic", "con", "Select Customer, To_Loc from GCG_5658_BuyerCodes")
+	 	f.Data.Dictionary.CreateFromSQL("fromLocDic", "con", "Select Customer, FROMLOC from GCG_5658_BuyerCodes")
+	 	f.Data.Dictionary.CreateFromSQL("shipViaIDDic", "con", "Select Customer, Ship_Via from V_CUSTOMER_SHIPTO")
+	 	f.Data.Dictionary.CreateFromSQL("shipViaDic", "con", "Select ID, Message from SHIP_VIA")
+	f.ODBC.Connection!con.Close
+	
+	f.Data.Dictionary.SetDefaultReturn("codeSortDic", "")
+	f.Data.DataTable.FillFromDictionary("biReportDT", "codeSortDic", "Sort_Value")
+	f.Data.Dictionary.Close("codeSortDic")	
+	
+	f.Data.DataTable.AddColumn("biReportDT", "Customer", "String")
+	f.Data.Dictionary.SetDefaultReturn("vendorDic", "***BLANK***")
+	f.Data.DataTable.FillFromDictionary("biReportDT", "vendorDic", "Sort_Value", "Customer")
+	f.Data.Dictionary.Close("vendorDic")	
+		
+	f.Data.DataView.Create("biReportDT", "biReportDV", 22, "Customer <> '***BLANK***'", )
+	f.Data.DataView.ToDataTableDistinct("biReportDT", "biReportDV", "customerDT", "Customer", True)
+	
+	f.Data.DataTable.AddColumn("customerDT", "Ship_Via", "String")
+	f.Data.Dictionary.SetDefaultReturn("shipViaIDDic", "***BLANK***")
+	f.Data.DataTable.FillFromDictionary("customerDT", "shipViaIDDic", "Customer", "Ship_Via")
+	f.Data.Dictionary.Close("shipViaIDDic")	
+	
+	f.Data.Dictionary.SetDefaultReturn("shipViaDic", " ")
+	f.Data.DataTable.FillFromDictionary("customerDT", "shipViaDic", "Ship_Via", "Ship_Via")
+	f.Data.Dictionary.Close("shipViaDic")	
+	
+	f.Data.DataTable.AddColumn("customerDT", "From_Loc", "String")
+	f.Data.Dictionary.SetDefaultReturn("fromLocDic", "***BLANK***")
+	f.Data.DataTable.FillFromDictionary("customerDT", "fromLocDic", "Customer", "From_Loc")
+	f.Data.Dictionary.Close("fromLocDic")	
+'	
+'	f.Data.DataTable.AddColumn("customerDT", "To_Loc", "String")
+'	f.Data.Dictionary.SetDefaultReturn("toLocDic", "***BLANK***")
+'	f.Data.DataTable.FillFromDictionary("customerDT", "toLocDic", "Code_Sort", "To_Loc")
+'	f.Data.Dictionary.Close("toLocDic")	
+	
+	f.Intrinsic.Control.For(v.Local.iCntHeader, 0, v.DataTable.customerDT.RowCount--, 1)
+		v.Local.sCustomer.Set(v.DataTable.customerDT(v.Local.iCntHeader).Customer!FieldValTrim)
+		v.Local.sShipVia.Set(v.DataTable.customerDT(v.Local.iCntHeader).Ship_Via!FieldValTrim)
+		v.Local.sFromLoc.Set(v.DataTable.customerDT(v.Local.iCntHeader).From_Loc!FieldValTrim)
+'		v.Local.sToLoc.Set(v.DataTable.customerDT(v.Local.iCntHeader).To_Loc!FieldValTrim)
+		
+		'f.Data.DataTable.AddRow("ORDUPL", "Transaction", "O", "Customer_No", v.Local.sCustomer, "Ship_Via", v.Local.sShipVia, "UserField1Head", "Intercompany", "OrderType", "T", "Filler4", v.Local.sFromLoc)
+		f.Intrinsic.String.Build("Customer = '{0}'", v.Local.sCustomer.Trim, v.Local.sFilter)
+		f.Data.DataView.SetFilter("biReportDT", "biReportDV", v.Local.sFilter)
+		
+		f.Intrinsic.Control.For(v.Local.iCntLines, 0, v.DataView.biReportDT!biReportDV.RowCount--, 1)
+			v.Local.sPartNumber.Set("")
+			v.Local.sRev.Set("")
+			v.Local.fQty.Set(0)
+			v.Local.sTempQty.Set("")
+			v.Local.sSortValue.Set("")
+			'v.Local.sFromLoc.Set("")
+			v.Local.sDescription.Set("")
+			
+			v.Local.sPartNumber.Set(v.DataView.biReportDT!biReportDV(v.Local.iCntLines).Part!FieldValTrim)
+			v.Local.fQty.Set(v.DataView.biReportDT!biReportDV(v.Local.iCntLines).Qty!FieldVal)
+			'v.Local.sFromLoc.Set(v.DataView.biReportDT!biReportDV(v.Local.iCntLines).Locn!FieldValTrim)
+			v.Local.sSortValue.Set(v.DataView.biReportDT!biReportDV(v.Local.iCntLines).Sort_Value!FieldValTrim)
+			v.Local.sDescription.Set(v.DataView.biReportDT!biReportDV(v.Local.iCntLines).Descr!FieldValTrim)
+			
+			'Get part and Rev
+			f.Intrinsic.Control.If(v.Local.sPartNumber.Length, =, 20)
+				f.Intrinsic.String.Right(v.Local.sPartNumber, 3, v.Local.sRev)
+				f.Intrinsic.String.Left(v.Local.sPartNumber, 17, v.Local.sPartNumber)
+			f.Intrinsic.Control.Else
+				f.Intrinsic.String.RPad(v.Local.sPartNumber.Trim, " ", 17, v.Local.sPartNumber)
+				f.Intrinsic.String.RPad(v.Local.sRev.Trim, " ", 3, v.Local.sRev)
+			f.Intrinsic.Control.EndIf
+			
+			'Get Quantity in string
+'			f.Intrinsic.String.Split(v.Local.sTempQty.Trim, ".", v.Local.sTempQty)
+'			f.Intrinsic.Control.If(v.Local.sTempQty.UBound, =, 1)
+'				f.Intrinsic.String.LPad(v.Local.sTempQty(0), "0", 9, v.Local.sTempQty(0))
+'				f.Intrinsic.String.RPad(v.Local.sTempQty(1), "0", 3, v.Local.sTempQty(1))
+'				f.Intrinsic.String.Build("{0}{1}", v.Local.sTempQty(0), v.Local.sTempQty(1), v.Local.sQty)
+'			f.Intrinsic.Control.ElseIf(v.Local.sTempQty.UBound, =, 0)
+'				f.Intrinsic.String.LPad(v.Local.sTempQty, "0", 9, v.Local.sQty)
+'				f.Intrinsic.String.RPad(v.Local.sQty, "0", 13, v.Local.sQty)
+'			f.Intrinsic.Control.EndIf
+			
+			'f.Data.DataTable.AddRow("ORDUPLLines", "QtyOrdered", v.Local.sQty, "PartNumber", v.Local.sPartNumber, "PartRev", v.Local.sRev, "PartLoc", v.Local.sFromLoc)
+			
+			f.Data.DataTable.AddRow("displayDT", "Customer_No", v.Local.sCustomer, "Sort_Value", v.Local.sSortValue, "Ship_Via", v.Local.sShipVia, "QtyOrdered", v.Local.fQty, "PartNumber", v.Local.sPartNumber, "PartRev", v.Local.sRev, "PartLoc", v.Local.sFromLoc, "Description", v.Local.sDescription)
+		f.Intrinsic.Control.Next(v.Local.iCntLines)
+		
+	f.Intrinsic.Control.Next(v.Local.iCntHeader)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.getPartsfromBI.End
+
+Program.Sub.createDisplayDT.Start
+f.Intrinsic.Control.Try
+	f.Data.DataTable.Create("displayDT", true)
+	f.Data.DataTable.AddColumn("displayDT", "Check_Box", "Bit",  false)
+	f.Data.DataTable.AddColumn("displayDT", "Customer_No", "String")
+	f.Data.DataTable.AddColumn("displayDT", "Sort_Value", "String")
+	f.Data.DataTable.AddColumn("displayDT", "Ship_Via", "String")
+	f.Data.DataTable.AddColumn("displayDT", "PartNumber", "String")
+	f.Data.DataTable.AddColumn("displayDT", "PartRev", "String")
+	f.Data.DataTable.AddColumn("displayDT", "PartLoc", "String")
+	f.Data.DataTable.AddColumn("displayDT", "Description", "String")
+	f.Data.DataTable.AddColumn("displayDT", "QtyOrdered", "Float")
+		
+	f.Data.DataView.Create("displayDT", "displayDV", 22)
+	gui.Form.GsGcDisplay.AddGridviewFromDataview("displayGV", "displayDT", "displayDV")
+	gui.Form.GsGcDisplay.MainView("displayGV")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.createDisplayDT.End
+
+Program.Sub.loadGridProperties.Start
+v.Local.iCnt.Declare
+v.Local.sFields.Declare
+f.Intrinsic.Control.Try
+	f.Intrinsic.String.Split(v.DataTable.displayDT.FieldNames, "*!*", v.Local.sFields)
+	f.Intrinsic.Control.For(v.Local.iCnt, 0, v.Local.sFields.UBound, 1)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderFontBold", True)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "Visible", True)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "ReadOnly", True)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "AllowEdit", False)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderHAlignment", "Center")
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "CellHAlignment", "Near")
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderBackColor", v.Color.GSS)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderForeColor", v.Color.White)
+	f.Intrinsic.Control.Next(v.Local.iCnt)
+	
+'	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Check_Box", "ReadOnly", False)
+'	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Check_Box", "AllowEdit", True)
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "QtyOrdered", "DisplayCustomNumeric", "#,###,##0.00")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "QtyOrdered", "CellHAlignment", "Far")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "PartLoc", "CellHAlignment", "Center")
+	
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Check_Box", "Caption", "Select")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Customer_no", "Caption", "Customer")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Sort_Value", "Caption", "Sort Value")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Ship_Via", "Caption", "Ship Via")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "PartNumber", "Caption", "Part")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "PartRev", "Caption", "Rev")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "PartLoc", "Caption", "Loc")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "QtyOrdered", "Caption", "Qty")
+	
+	
+	gui.Form.GsGcDisplay.BestFitColumns("displayGV")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.loadGridProperties.End
+
+Program.Sub.cmdTransfer_Click.Start
+'Search String
+v.Local.sSQL.Declare
+v.Local.sFilter.Declare
+v.Local.sReturn.Declare
+v.Local.sTempQty.Declare
+v.Local.sSortValue.Declare
+v.Local.sOrderList.Declare(String, "")
+v.Local.sCustomerList.Declare(String, "")
+v.Local.sFilePath.Declare
+v.Local.iRptID.Declare
+v.Local.sParamName.Declare(String, "")
+v.Local.sParamValue.Declare(String, "")
+v.Local.sSelectedCustomer.Declare(String, "")
+
+v.Local.sParamName.Redim(0,1)
+v.Local.sParamValue.Redim(0,1)
+
+v.Local.sTemp.Declare
+
+'Header Variable
+v.Local.sCustomer.Declare
+v.Local.sShipVia.Declare
+v.Local.sFromLoc.Declare
+'v.Local.sToLoc.Declare
+
+'Line Variable
+v.Local.sPartNumber.Declare
+v.Local.sRev.Declare
+v.Local.sDescription.Declare
+v.Local.sLocation.Declare
+v.Local.sQty.Declare
+v.Local.sPromisedDate.Declare
+v.Local.sUM.Declare
+v.Local.iLeadDays.Declare
+v.Local.dTempDate.Declare
+
+'Counter
+v.Local.iCntHeader.Declare
+v.Local.iCntLines.Declare
+
+'Custom ID.
+v.Local.sCustomID.Declare
+
+'Ship to Info
+v.Local.sShip_CustomerName.Declare
+v.Local.sShipAdd1.Declare
+v.Local.sShipAdd2.Declare
+v.Local.sShipAdd3.Declare
+v.Local.sShipToCity.Declare
+v.Local.sShipToState.Declare
+v.Local.sShipToZip.Declare
+v.Local.sShipToCountry.Declare
+v.Local.sShipToAttention.Declare
+v.Local.sShipToID.Declare
+
+v.Local.sSelectedPN.Declare
+f.Intrinsic.Control.Try
+
+	f.Data.DataTable.AcceptChanges("displayDT")
+	f.Data.DataView.Create("displayDT", "display_T_DV", 22, "Check_Box = True" , "")
+	
+	
+	f.Intrinsic.Control.If(v.DataView.displayDT!display_T_DV.RowCount, =, 0)
+		f.Data.DataView.Close("displayDT", "display_T_DV")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf
+	
+	f.Data.DataView.ToString("displayDT", "display_T_DV", "Customer_No", "*!*", "','", v.Local.sSelectedCustomer)
+	f.Data.DataView.ToString("displayDT", "display_T_DV", "PartNumber", "*!*", "','", v.Local.sSelectedPN)
+	
+	f.Intrinsic.String.Build("Customer in ('{0}')", v.Local.sSelectedCustomer, v.Local.sSelectedCustomer)
+	
+	f.Data.DataView.Create("customerDT", "customerDV", 22, v.Local.sSelectedCustomer, "")
+	f.Data.DataView.ToDataTable("customerDT", "customerDV", "selectedCustomerDT")
+	f.Data.DataView.Close("customerDT", "customerDV")
+	
+	'f.Intrinsic.Control.For(v.Local.iCntHeader, 0, v.DataTable.customerDT.RowCount--, 1)
+	f.Intrinsic.Control.For(v.Local.iCntHeader, 0, v.DataTable.selectedCustomerDT.RowCount--, 1)
+		v.Local.sCustomer.Set("")
+		v.Local.sShipVia.Set("")
+		v.Local.sCustomer.Set(v.DataTable.selectedCustomerDT(v.Local.iCntHeader).Customer!FieldValTrim)
+		v.Local.sShipVia.Set(v.DataTable.selectedCustomerDT(v.Local.iCntHeader).Ship_Via!FieldValTrim)
+		
+		'get ship to id info.
+		f.Intrinsic.String.Build("Select * from V_OE_MULTI_SHIP where Customer = '{0}'", v.Local.sCustomer, v.Local.sSQL)
+		f.ODBC.Connection!con.OpenCompanyConnection
+		 	f.Data.DataTable.CreateFromSQL("shiptoDT", "con", v.Local.sSQL)
+		f.ODBC.Connection!con.Close
+		
+		f.Intrinsic.Control.If(v.DataTable.shiptoDT.RowCount, =, 1)
+			'v.Local.sShip_to.Set(v.DataTable.shiptoDT(0).CUSTOMER_NAME!FieldValTrim)
+			
+			v.Local.sShip_CustomerName.Set(v.DataTable.shiptoDT(0).CUSTOMER_NAME!FieldValTrim)
+			v.Local.sShipAdd1.Set(v.DataTable.shiptoDT(0).SHIP_ADDRESS1!FieldValTrim)
+			v.Local.sShipAdd2.Set(v.DataTable.shiptoDT(0).SHIP_ADDRESS2!FieldValTrim)
+			v.Local.sShipAdd3.Set(v.DataTable.shiptoDT(0).SHIP_ADDRESS3!FieldValTrim)
+			v.Local.sShipToCity.Set(v.DataTable.shiptoDT(0).SHIP_CITY!FieldValTrim)
+			v.Local.sShipToState.Set(v.DataTable.shiptoDT(0).SHIP_STATE!FieldValTrim)
+			v.Local.sShipToZip.Set(v.DataTable.shiptoDT(0).SHIP_ZIP!FieldValTrim)
+			v.Local.sShipToCountry.Set(v.DataTable.shiptoDT(0).SHIP_COUNTRY!FieldValTrim)
+			v.Local.sShipToAttention.Set(v.DataTable.shiptoDT(0).SHIP_ATTENTION!FieldValTrim)
+			v.Local.sShipToID.Set(v.DataTable.shiptoDT(0).SHIP_SEQ!FieldValTrim)
+		f.Intrinsic.Control.EndIf
+			
+		'updated by RLK to set filter and get the from loc for the customer rather than using variable iCntLines 
+		'v.Local.sFromLoc.Set(v.DataView.displayDT!display_T_DV(v.Local.iCntLines).PartLoc!FieldValTrim)
+		'f.Data.DataView.Create("selectedCustomerDT", "selectedCustomerDV")
+		F.Intrinsic.String.Build("Customer_No = '{0}'",V.Local.sCustomer.Trim,V.Local.sFilter)
+		F.Data.DataView.SetFilter("displayDT","display_T_DV",V.Local.sFilter)
+		v.Local.sFromLoc.Set(v.DataView.displayDT!display_T_DV(V.DataView.displayDT!display_T_DV.RowCount--).PartLoc!FieldValTrim)
+		
+		f.Intrinsic.Control.If(v.Local.sCustomerList.Trim, =, "")
+	 		v.Local.sCustomerList.Set(v.Local.sCustomer)
+	 	f.Intrinsic.Control.Else
+	 		f.Intrinsic.String.Build("{0}','{1}", v.Local.sCustomerList, v.Local.sCustomer, v.Local.sCustomerList)
+	 	f.Intrinsic.Control.EndIf
+		 	
+		f.Intrinsic.String.Build("CustomID_{0}", v.Local.iCntHeader, v.Local.sCustomID)
+
+		f.Data.DataTable.AddRow("ORDUPL", "Transaction", "O", "CustomerNo", v.Local.sCustomer, "ShipVia", v.Local.sShipVia, "UserField1Head", "Intercompany", "UserField2Head", "NA", "UserField5Head", "NA", "UserField3Head", v.Local.sCustomID, "OrderType", "T", "ShipToName", v.Local.sShip_CustomerName, "ShipToAddress1", v.Local.sShipAdd1, "ShipToAddress2", v.Local.sShipAdd2, "ShipToAddress3", v.Local.sShipAdd3, "ShipToCity", v.Local.sShipToCity, "ShipToState", v.Local.sShipToState, "ShipToZip", v.Local.sShipToZip, "ShipToCountry", v.Local.sShipToCountry, "ShipToAttention", v.Local.sShipToAttention, "ShipToID", v.Local.sShipToID, "FromLOC", v.Local.sFromLoc)
+		'RLK updated set filter to not only filter on customer but also only include lines that have been checked.
+'		f.Intrinsic.String.Build("Customer_No = '{0}'", v.Local.sCustomer.Trim, v.Local.sFilter)
+		f.Intrinsic.String.Build("Customer_No = '{0}' and Check_Box = True", v.Local.sCustomer.Trim, v.Local.sFilter)
+		f.Data.DataView.SetFilter("displayDT", "display_T_DV", v.Local.sFilter)
+		
+		f.Intrinsic.Control.For(v.Local.iCntLines, 0, v.DataView.displayDT!display_T_DV.RowCount--, 1)
+			v.Local.sPartNumber.Set("")
+			v.Local.sRev.Set("")
+			v.Local.sQty.Set("")
+			v.Local.sTempQty.Set("")
+			v.Local.sSortValue.Set("")
+			v.Local.sFromLoc.Set("")
+			v.Local.iLeadDays.Set(0)
+			v.Local.sUM.Set("")
+			
+			v.Local.sPartNumber.Set(v.DataView.displayDT!display_T_DV(v.Local.iCntLines).PartNumber!FieldValTrim)
+			v.Local.sRev.Set(v.DataView.displayDT!display_T_DV(v.Local.iCntLines).PartRev!FieldValTrim)
+			v.Local.sTempQty.Set(v.DataView.displayDT!display_T_DV(v.Local.iCntLines).QtyOrdered!FieldVal)
+			v.Local.sFromLoc.Set(v.DataView.displayDT!display_T_DV(v.Local.iCntLines).PartLoc!FieldValTrim)
+			v.Local.sSortValue.Set(v.DataView.displayDT!display_T_DV(v.Local.iCntLines).Sort_Value!FieldValTrim)
+			f.ODBC.Connection!con.OpenCompanyConnection
+				
+			 	f.Intrinsic.String.Build("Select Max(TIME_MATERIAL_LEAD) from V_INVENTORY_MSTR where PART = '{0}'", v.Local.sPartNumber, v.Local.sSQL)
+			 	f.ODBC.Connection!con.ExecuteAndReturn(v.Local.sSQL, v.Local.sTemp)
+			 	
+			 	f.Intrinsic.String.Split(v.Local.sTemp, "#$#", v.Local.sTemp)
+			 	v.Local.iLeadDays.Set(v.Local.sTemp(0))
+			 	
+			 	f.Intrinsic.String.Build("Select UM_INVENTORY from V_INVENTORY_MSTR where PART = '{0}'", v.Local.sPartNumber, v.Local.sSQL)
+			 	f.ODBC.Connection!con.ExecuteAndReturn(v.Local.sSQL, v.Local.sTemp)
+			 	
+			 	f.Intrinsic.String.Split(v.Local.sTemp, "#$#", v.Local.sTemp)
+			 	v.Local.sUM.Set(v.Local.sTemp(0))
+			f.ODBC.Connection!con.Close
+			
+			f.Intrinsic.Date.DateAddWorkdays(v.Ambient.Date, v.Local.iLeadDays, 62, v.Local.dTempDate)
+			f.Intrinsic.String.Format(v.Local.dTempDate, "YYYYMMDD", v.Local.sPromisedDate)
+			'Get Quantity in string
+			f.Intrinsic.String.Split(v.Local.sTempQty.Trim, ".", v.Local.sTempQty)
+			f.Intrinsic.Control.If(v.Local.sTempQty.UBound, =, 1)
+				f.Intrinsic.String.LPad(v.Local.sTempQty(0), "0", 9, v.Local.sTempQty(0))
+				f.Intrinsic.String.RPad(v.Local.sTempQty(1), "0", 3, v.Local.sTempQty(1))
+				f.Intrinsic.String.Build("{0}{1}", v.Local.sTempQty(0), v.Local.sTempQty(1), v.Local.sQty)
+			f.Intrinsic.Control.ElseIf(v.Local.sTempQty.UBound, =, 0)
+				f.Intrinsic.String.LPad(v.Local.sTempQty, "0", 9, v.Local.sQty)
+				f.Intrinsic.String.RPad(v.Local.sQty, "0", 13, v.Local.sQty)
+			f.Intrinsic.Control.EndIf			
+			
+			f.Data.DataTable.AddRow("ORDUPLLines", "QtyOrdered", v.Local.sQty, "PartNumber", v.Local.sPartNumber, "PartRev", v.Local.sRev, "PartLoc", v.Local.sFromLoc, "UserField5", "N/A", "LinePromiseDate", v.Local.sPromisedDate, "UM", v.Local.sUM)			
+		f.Intrinsic.Control.Next(v.Local.iCntLines)			
+		
+		f.Data.DataTable.AcceptChanges("ORDUPL")
+		f.Data.DataTable.AcceptChanges("ORDUPLLines")
+		
+		f.Intrinsic.Control.CallSub(ORDUPLCreateFile)
+		
+		f.Intrinsic.Control.CallSub(ORDUPLSync)
+		
+		f.ODBC.Connection!con.OpenCompanyConnection
+			f.Intrinsic.String.Build("Select distinct Order_No from V_Order_Header where Rtrim(USER_3) = '{0}'", v.Local.sCustomID.Trim, v.Local.sSQL)
+		 	f.ODBC.Connection!con.ExecuteAndReturn(v.Local.sSQL, v.Local.sReturn)
+		 	
+		 	f.Intrinsic.Control.If(v.Local.sOrderList.Trim, =, "")
+		 		v.Local.sOrderList.Set(v.Local.sReturn)
+		 	f.Intrinsic.Control.Else
+		 		f.Intrinsic.String.Build("{0},{1}", v.Local.sOrderList, v.Local.sReturn, v.Local.sOrderList)
+		 	f.Intrinsic.Control.EndIf
+		 	
+		 	f.Intrinsic.String.Build("Update Order_Header Set CUSTOMER_PO = '{0}', USER_3 = '' Where Order_No = '{0}' and Record_Type = 'A' ", v.Local.sReturn, v.Local.sSQL)
+		 	f.ODBC.Connection!con.Execute(v.Local.sSQL)
+		f.ODBC.Connection!con.Close		
+	f.Intrinsic.Control.Next(v.Local.iCntHeader)
+	
+	f.Data.DataTable.Close("selectedCustomerDT")
+	
+	f.Data.DataView.Close("displayDT", "display_T_DV")
+
+	f.Intrinsic.String.Build("{0}\CUSTOM\GCG_5658_ORDER_TRANSFER.rpt", v.Caller.BusintDir, v.Local.sFilePath)
+	f.Global.BI.InitializeReport("Description", v.Local.sFilePath, v.Local.iRptID)
+	v.Local.sParamName(0).Set("CompanyName")
+	v.Local.sParamName(1).Set("orderList")
+	
+	f.Intrinsic.String.Build("Select CompanyName from Companies where Cocode = '{0}'", v.Caller.CompanyCode, v.Local.sSQL)
+	
+	f.ODBC.Connection!con.OpenCommonConnection
+	 	f.ODBC.Connection!con.ExecuteAndReturn(v.Local.sSQL, v.Local.sReturn)
+	f.ODBC.Connection!con.Close
+		
+	v.Local.sParamValue(0).Set(v.Local.sReturn.Trim)
+	v.Local.sParamValue(1).Set(v.Local.sOrderList.Trim)
+	
+	f.Global.BI.PrintReport(v.Local.iRptID, 0, v.Local.sParamName, v.Local.sParamValue, false)
+	
+	'f.Intrinsic.String.Replace(v.Local.sOrderList, ",", "','", v.Local.sOrderList)
+	f.Intrinsic.String.Build("PartNumber not in ('{0}')", v.Local.sSelectedPN, v.Local.sFilter)
+	
+	f.Data.DataView.SetFilter("displayDT", "displayDV", v.Local.sFilter)
+	f.Data.DataView.ToDataTable("displayDT", "displayDV", "tmpDisplayDT")
+	
+	f.Data.DataTable.DeleteRow("displayDT")
+	f.Data.DataTable.AcceptChanges("displayDT")
+	f.Data.DataTable.Merge("tmpDisplayDT", "displayDT", false, 2)
+	
+	f.Data.DataView.SetFilter("displayDT", "displayDV", "")
+	f.Data.DataTable.Close("tmpDisplayDT")
+	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdTransfer_Click.End
+
+Program.Sub.Form_UnLoad.Start
+f.Intrinsic.Control.Try
+	f.Intrinsic.Control.End
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.setViewEdit.Start
+v.Local.iView.Declare
+f.Intrinsic.Control.Try
+	v.Local.iView.Set(v.Screen.Form!optView.Value)
+	f.Intrinsic.Control.If(v.Local.iView, =, 1)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "QtyOrdered", "ReadOnly", True)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "QtyOrdered", "AllowEdit", False)
+	f.Intrinsic.Control.Else
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "QtyOrdered", "ReadOnly", False)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "QtyOrdered", "AllowEdit", True)
+	f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.setViewEdit.End
+
+Program.Sub.loadIcon.Start
+v.Local.sIcon.Declare
+'sets the icon
+f.Intrinsic.String.Build("{0}\ART\gss2.ico", v.Caller.GlobalDir, v.Local.sIcon)
+gui.Form..Icon(v.Local.sIcon)
+Program.Sub.loadIcon.End
+
+Program.Sub.GsGcDisplay_CellValueChanged.Start
+v.Local.sLoc.Declare
+f.Intrinsic.Control.Try
+	v.Local.sLoc.Set(v.DataTable.displayDT(v.Args.RowIndex).PartLoc!FieldValTrim)
+	
+	f.Intrinsic.Control.If(v.Local.sLoc.Trim, =, "***BLANK***")
+		'gui.Form.GsGcDisplay.SetCellValue("displayGV", 1, v.Args.RowIndex, 0)
+		'f.Data.DataTable.SetValue("displayDT", v.Args.RowIndex, "Check_Box", False)
+		f.Data.DataTable.AcceptChanges("displayDT")
+		f.Data.DataView.SetValue("displayDT", "displayDV", v.Args.RowIndex, "Check_Box", False)
+		
+	f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.GsGcDisplay_CellValueChanged.End
+
+Program.Sub.GsGcDisplay_RowCellClick.Start
+v.Local.sLoc.Declare
+f.Intrinsic.Control.Try
+	f.Intrinsic.Control.BlockEvents
+	f.Intrinsic.Control.SelectCase(v.Args.Column.UCase)
+		f.Intrinsic.Control.Case("CHECK_BOX")
+		'f.Intrinsic.Control.If(v.Args.Column.UCase, =, "CHECK_BOX")
+		
+			v.Local.sLoc.Set(v.DataTable.displayDT(v.Args.RowIndex).PartLoc!FieldValTrim)
+	
+			f.Intrinsic.Control.If(v.Local.sLoc.Trim, =, "***BLANK***")
+				f.Data.DataTable.SetValue("displayDT", v.Args.RowIndex, "Check_Box", False)
+			f.Intrinsic.Control.Else
+				f.Intrinsic.Control.If(v.DataTable.displayDT(v.Args.RowIndex).Check_Box!FieldVal)
+					f.Data.DataTable.SetValue("displayDT", v.Args.RowIndex, "Check_Box", False)
+				f.Intrinsic.Control.Else
+					f.Data.DataTable.SetValue("displayDT", v.Args.RowIndex, "Check_Box", True)
+				f.Intrinsic.Control.EndIf
+			f.Intrinsic.Control.EndIf
+		'f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.EndSelect
+	f.Intrinsic.Control.UnBlockEvents
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.GsGcDisplay_RowCellClick.End
+
+Program.Sub.cmdSelect_Click.Start
+v.Local.iCnt.Declare
+f.Intrinsic.Control.Try
+'Try something
+	f.Data.DataTable.SetValue("displayDT",  -1, "Check_Box", True)
+'	f.Intrinsic.Control.For(v.Local.iCnt, 0, v.DataTable.displayDT.RowCount--, 1)
+'		
+'	f.Intrinsic.Control.Next(v.Local.ic)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdSelect_Click.End
+
+
