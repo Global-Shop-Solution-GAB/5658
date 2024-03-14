@@ -1,0 +1,11 @@
+-- Begin Tables
+SET LEGACYTYPESALLOWED = ON;
+-- Begin Multi-Line Statement
+CREATE TABLE "GCG_5658_BUYERCODES" (
+ "BUYERCODE" CHAR(10),
+ "FROMLOC" CHAR(2),
+ "CUSTOMER" CHAR(6),
+ "NAME" CHAR(50) );
+-- End Multi-Line Statement
+SET LEGACYTYPESALLOWED = OFF;
+-- End Tables
